@@ -222,6 +222,21 @@ class LibraryApp {
         document.body.appendChild(detailsListed);
         detailsUnlisted.appendChild(summaryUnlisted);
         detailsListed.appendChild(summaryListed);
+
+        // fill out the lists
+        const unlistedObjects = type === "costumes" ? this.getUnlistedCostumes() : this.getUnlistedSounds();
+        for (const filePath of unlistedObjects) {
+            const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath);
+            detailsUnlisted.appendChild(button);
+        }
+
+        const listedObjects = (type === "costumes" ? this.costumesLibrary : this.soundsLibrary)
+            .filter(object => object.fromPenguinModLibrary)
+            .map(object => object.libraryFilePage);
+        for (const filePath of listedObjects) {
+            const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath);
+            detailsListed.appendChild(button);
+        }
     }
 }
 

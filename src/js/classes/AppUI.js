@@ -1,3 +1,5 @@
+const path = require("path");
+
 const AppIO = require("./AppIO");
 
 class AppUI {
@@ -14,6 +16,33 @@ class AppUI {
             if (!folderPath) return;
             callback(folderPath);
         });
+    }
+
+    static makeButtonForCostume(objectsLibraryPath, filePath) {
+        const button = document.createElement("button");
+        button.classList.add("costume-button");
+        const container = document.createElement("div");
+        button.appendChild(container);
+        const image = document.createElement("img");
+        image.src = path.join(objectsLibraryPath, filePath);
+
+        container.appendChild(image);
+        container.appendChild(document.createTextNode(filePath));
+        return button;
+    }
+    static makeButtonForSound(objectsLibraryPath, filePath) {
+        const button = document.createElement("button");
+        button.classList.add("fake-link");
+        button.innerHTML = filePath;
+        return button;
+    }
+    static makeButtonForObject(type, objectsLibraryPath, filePath) {
+        switch (type) {
+            case "costumes":
+                return this.makeButtonForCostume(objectsLibraryPath, filePath);
+            case "sounds":
+                return this.makeButtonForSound(objectsLibraryPath, filePath);
+        }
     }
 }
 
