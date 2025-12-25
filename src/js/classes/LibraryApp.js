@@ -228,15 +228,114 @@ class LibraryApp {
         for (const filePath of unlistedObjects) {
             const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath);
             detailsUnlisted.appendChild(button);
+
+            button.onclick = () => this.showAssetMenu(type, filePath);
         }
 
         const listedObjects = (type === "costumes" ? this.costumesLibrary : this.soundsLibrary)
-            .filter(object => object.fromPenguinModLibrary)
-            .map(object => object.libraryFilePage);
-        for (const filePath of listedObjects) {
+            .filter(object => object.fromPenguinModLibrary);
+        for (const object of listedObjects) {
+            const filePath = object.libraryFilePage;
             const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath);
             detailsListed.appendChild(button);
+
+            button.onclick = () => this.showAssetMenu(type, null, object);
         }
+    }
+    static showAssetMenu(type, newFromFilePath, editingObject) {
+        this.clearScreen();
+
+        const buttonBack = document.createElement("button");
+        buttonBack.innerHTML = "Back";
+        buttonBack.onclick = () => this.showLibrary(type);
+        document.body.appendChild(buttonBack);
+
+        const labelMenu = document.createElement("h1");
+        labelMenu.innerHTML = newFromFilePath ? ("New " + (type === "costumes" ? "Costume" : "Sound") + " from " + newFromFilePath)
+            : "Editing " + editingObject.name;
+        document.body.appendChild(labelMenu);
+
+        // values that always be made
+        // name
+        const labelName = document.createElement("label");
+        labelName.appendChild(document.createTextNode("Name:"));
+        const inputName = document.createElement("input");
+        inputName.placeholder = "Name";
+        inputName.value = editingObject ? editingObject.name : path.basename(newFromFilePath);
+        labelName.appendChild(inputName);
+        document.body.appendChild(labelName);
+        // tags
+        const labelTags = document.createElement("label");
+        labelTags.appendChild(document.createTextNode("Tags (,):"));
+        const inputTags = document.createElement("input");
+        inputTags.placeholder = "animals,music,fantasy";
+        inputTags.value = editingObject ? editingObject.tags.join(",") : "";
+        labelTags.appendChild(inputTags);
+        document.body.appendChild(labelTags);
+
+        // values that can be made sometimes
+        // dataFormat
+        const labelDataFormat = document.createElement("label");
+        labelDataFormat.appendChild(document.createTextNode("Data Format:"));
+        const inputDataFormat = document.createElement("input");
+        inputDataFormat.placeholder = "svg or png";
+        inputDataFormat.value = editingObject ? editingObject.dataFormat : (newFromFilePath.endsWith("svg") ? "svg" : "png");
+        labelDataFormat.appendChild(inputDataFormat);
+        document.body.appendChild(labelDataFormat);
+        labelDataFormat.style.display = type === "costumes" ? "" : "none";
+        // bitmapResolution
+        const labelBitmapResolution = document.createElement("label");
+        labelBitmapResolution.appendChild(document.createTextNode("Bitmap Res:"));
+        const inputBitmapResolution = document.createElement("input");
+        inputBitmapResolution.type = "number";
+        inputBitmapResolution.step = 1;
+        inputBitmapResolution.placeholder = "1 (svg) or 2 (png)";
+        inputBitmapResolution.value = editingObject ? editingObject.bitmapResolution : (newFromFilePath.endsWith("svg") ? 1 : 2);
+        labelBitmapResolution.appendChild(inputBitmapResolution);
+        document.body.appendChild(labelBitmapResolution);
+        labelBitmapResolution.style.display = type === "costumes" ? "" : "none";
+        // rotationCenterX
+        const labelRotationCenterX = document.createElement("label");
+        labelRotationCenterX.appendChild(document.createTextNode("Rotation Center X:"));
+        const inputRotationCenterX = document.createElement("input");
+        inputRotationCenterX.type = "number";
+        inputRotationCenterX.step = 1;
+        inputRotationCenterX.placeholder = "0 for SVG";
+        inputRotationCenterX.value = editingObject ? editingObject.rotationCenterX : 0;
+        labelRotationCenterX.appendChild(inputRotationCenterX);
+        document.body.appendChild(labelRotationCenterX);
+        labelRotationCenterX.style.display = type === "costumes" ? "" : "none";
+        // rotationCenterY
+        const labelRotationCenterY = document.createElement("label");
+        labelRotationCenterY.appendChild(document.createTextNode("Rotation Center Y:"));
+        const inputRotationCenterY = document.createElement("input");
+        inputRotationCenterY.type = "number";
+        inputRotationCenterY.step = 1;
+        inputRotationCenterY.placeholder = "0 for SVG";
+        inputRotationCenterY.value = editingObject ? editingObject.rotationCenterY : 0;
+        labelRotationCenterY.appendChild(inputRotationCenterY);
+        document.body.appendChild(labelRotationCenterY);
+        labelRotationCenterY.style.display = type === "costumes" ? "" : "none";
+
+        // rate
+        const labelRate = document.createElement("label");
+        labelRate.appendChild(document.createTextNode("Sample Rate:"));
+        const inputRate = document.createElement("input");
+        inputRate.type = "number";
+        inputRate.step = 1;
+        inputRate.placeholder = "44100";
+        inputRate.value = editingObject ? editingObject.rate : 44100;
+        labelRate.appendChild(inputRate);
+        document.body.appendChild(labelRate);
+        labelRate.style.display = type === "sounds" ? "" : "none";
+
+        // save button
+        const buttonSave = document.createElement("button");
+        buttonSave.innerHTML = "Save";
+        buttonSave.onclick = () => {
+            console.log('gotta save');
+        };
+        document.body.appendChild(buttonSave);
     }
 }
 

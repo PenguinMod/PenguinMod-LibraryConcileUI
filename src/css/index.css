@@ -6,6 +6,9 @@
 button {
     cursor: pointer;
 }
+label {
+    display: block;
+}
 
 .fake-link {
     padding: 0;
