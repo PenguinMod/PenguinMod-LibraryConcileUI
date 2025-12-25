@@ -60,6 +60,12 @@ class LibraryApp {
         this.costumesInFolder = filePaths.filter(filePath => filePath.endsWith(".svg") || filePath.endsWith(".png"));
         this.soundsInFolder = filePaths.filter(filePath => filePath.endsWith(".mp3"));
     }
+    static getUnlistedCostumes() {
+        return this.costumesInFolder.filter(filePath => !(this.costumesLibrary.find(costume => costume.libraryFilePage === filePath)));
+    }
+    static getUnlistedSounds() {
+        return this.soundsInFolder.filter(filePath => !(this.soundsLibrary.find(sound => sound.libraryFilePage === filePath)));
+    }
 
     static clearScreen() {
         // incase we need to change this later its a func
@@ -148,7 +154,74 @@ class LibraryApp {
             this.showLoading("Processing library");
             await this.loadObjectsLibraryFolder();
             console.log("yea bro i finish", this.costumesInFolder, this.soundsInFolder);
+            console.log("low key", this.getUnlistedCostumes());
+
+            this.showLibrarySelector();
         };
+    }
+    static showLibrarySelector() {
+        this.clearScreen();
+
+        // labels
+        const labelLibraries = document.createElement("h1");
+        labelLibraries.innerHTML = "Libraries";
+        const labelBack = document.createElement("h1");
+        labelBack.innerHTML = "Back";
+        // buttons
+        const buttonCostumes = document.createElement("button");
+        buttonCostumes.innerHTML = "Costumes";
+        buttonCostumes.onclick = () => this.showLibrary("costumes");
+        const buttonSounds = document.createElement("button");
+        buttonSounds.innerHTML = "Sounds";
+        buttonSounds.onclick = () => this.showLibrary("sounds");
+        const buttonBack = document.createElement("button");
+        buttonBack.innerHTML = "Back";
+        buttonBack.onclick = () => {
+            this.showPathSelector();
+        };
+
+        // add stuff in order
+        document.body.appendChild(labelLibraries);
+        document.body.appendChild(buttonCostumes);
+        document.body.appendChild(buttonSounds);
+        document.body.appendChild(labelBack);
+        document.body.appendChild(buttonBack);
+    }
+    static showLibrary(type) {
+        this.clearScreen();
+
+        const buttonBack = document.createElement("button");
+        buttonBack.innerHTML = "Back";
+        buttonBack.onclick = () => this.showLibrarySelector();
+        document.body.appendChild(buttonBack);
+
+        const labelLibrary = document.createElement("h1");
+        labelLibrary.innerHTML = type === "costumes" ? "Costumes": "Sounds";
+        document.body.appendChild(labelLibrary);
+        const buttonSave = document.createElement("button");
+        buttonSave.innerHTML = "Save";
+        buttonSave.onclick = () => {
+            if (type === "costumes") {
+                fs.writeFileSync(this.costumesLibraryPath, JSON.stringify(this.costumesLibrary, null, 4), "utf8");
+            } else {
+                fs.writeFileSync(this.soundsLibraryPath, JSON.stringify(this.soundsLibrary, null, 4), "utf8");
+            }
+        };
+        document.body.appendChild(buttonSave);
+
+        document.body.appendChild(document.createElement("br"));
+        document.body.appendChild(document.createElement("br"));
+
+        const detailsUnlisted = document.createElement("details");
+        const detailsListed = document.createElement("details");
+        const summaryUnlisted = document.createElement("summary");
+        const summaryListed = document.createElement("summary");
+        summaryUnlisted.innerHTML = "Unlisted";
+        summaryListed.innerHTML = "Library list";
+        document.body.appendChild(detailsUnlisted);
+        document.body.appendChild(detailsListed);
+        detailsUnlisted.appendChild(summaryUnlisted);
+        detailsListed.appendChild(summaryListed);
     }
 }
 
