@@ -18,7 +18,7 @@ class AppUI {
         });
     }
 
-    static makeButtonForCostume(objectsLibraryPath, filePath) {
+    static makeButtonForCostume(objectsLibraryPath, filePath, object) {
         const button = document.createElement("button");
         button.classList.add("costume-button");
         const container = document.createElement("div");
@@ -27,21 +27,21 @@ class AppUI {
         image.src = path.join(objectsLibraryPath, filePath);
 
         container.appendChild(image);
-        container.appendChild(document.createTextNode(filePath));
+        container.appendChild(document.createTextNode(object ? object.name : filePath));
         return button;
     }
-    static makeButtonForSound(objectsLibraryPath, filePath) {
+    static makeButtonForSound(objectsLibraryPath, filePath, object) {
         const button = document.createElement("button");
         button.classList.add("fake-link");
-        button.innerHTML = filePath;
+        button.innerHTML = object ? object.name : filePath;
         return button;
     }
-    static makeButtonForObject(type, objectsLibraryPath, filePath) {
+    static makeButtonForObject(type, objectsLibraryPath, filePath, object) {
         switch (type) {
             case "costumes":
-                return this.makeButtonForCostume(objectsLibraryPath, filePath);
+                return this.makeButtonForCostume(objectsLibraryPath, filePath, object);
             case "sounds":
-                return this.makeButtonForSound(objectsLibraryPath, filePath);
+                return this.makeButtonForSound(objectsLibraryPath, filePath, object);
         }
     }
 }

@@ -66,6 +66,14 @@ class LibraryApp {
     static getUnlistedSounds() {
         return this.soundsInFolder.filter(filePath => !(this.soundsLibrary.find(sound => sound.libraryFilePage === filePath)));
     }
+    static getCostumeTags() {
+        return [...new Set(this.costumesLibrary.map(costume => costume.tags)
+            .flat(Infinity))];
+    }
+    static getSoundTags() {
+        return [...new Set(this.soundsLibrary.map(sound => sound.tags)
+            .flat(Infinity))];
+    }
 
     static clearScreen() {
         // incase we need to change this later its a func
@@ -233,10 +241,11 @@ class LibraryApp {
         }
 
         const listedObjects = (type === "costumes" ? this.costumesLibrary : this.soundsLibrary)
-            .filter(object => object.fromPenguinModLibrary);
+            .filter(object => object.fromPenguinModLibrary)
+            .toSorted((a, b) => a.name.localeCompare(b.name));
         for (const object of listedObjects) {
             const filePath = object.libraryFilePage;
-            const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath);
+            const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath, object);
             detailsListed.appendChild(button);
 
             button.onclick = () => this.showAssetMenu(type, null, object);
@@ -254,6 +263,20 @@ class LibraryApp {
         labelMenu.innerHTML = newFromFilePath ? ("New " + (type === "costumes" ? "Costume" : "Sound") + " from " + newFromFilePath)
             : "Editing " + editingObject.name;
         document.body.appendChild(labelMenu);
+        if (type === "costumes") {
+            const filePath = editingObject ? editingObject.libraryFilePage : newFromFilePath;
+            const image = document.createElement("img");
+            image.src = path.join(this.objectsLibraryPath, filePath);
+            image.classList.add("costume-image");
+            document.body.appendChild(image);
+        } else {
+            const filePath = editingObject ? editingObject.libraryFilePage : newFromFilePath;
+            const audio = document.createElement("audio");
+            audio.src = path.join(this.objectsLibraryPath, filePath);
+            audio.controls = true;
+            audio.volume = 0.5;
+            document.body.appendChild(audio);
+        }
 
         // values that always be made
         // name
@@ -272,6 +295,19 @@ class LibraryApp {
         inputTags.value = editingObject ? editingObject.tags.join(",") : "";
         labelTags.appendChild(inputTags);
         document.body.appendChild(labelTags);
+        // we can just show common tags in this library
+        const commonTags = document.createElement("p");
+        commonTags.innerHTML = "Common tags: " +
+            (type === "costumes" ? this.getCostumeTags() : this.getSoundTags()).toSorted((a, b) => a.localeCompare(b)).join(" ");
+        commonTags.style.width = "calc(100% - 16px)";
+        commonTags.style.display = "none";
+        inputTags.onfocus = () => {
+            commonTags.style.display = "";
+        };
+        inputTags.onblur = () => {
+            commonTags.style.display = "none";
+        };
+        document.body.appendChild(commonTags);
 
         // values that can be made sometimes
         // dataFormat
@@ -334,6 +370,49 @@ class LibraryApp {
         buttonSave.innerHTML = "Save";
         buttonSave.onclick = () => {
             console.log('gotta save');
+
+            const objectToEdit = editingObject ? editingObject : (type === "costumes" ? {
+                    name: "",
+                    tags: [],
+                    bitmapResolution: 1,
+                    dataFormat: "svg",
+                    rotationCenterX: 0,
+                    rotationCenterY: 0,
+                    fromPenguinModLibrary: true,
+                    libraryFilePage: ""
+                } : {
+                    name: "",
+                    tags: [],
+                    dataFormat: "mpeg",
+                    md5ext: "sound.mp3",
+                    rate: 44100,
+                    fromPenguinModLibrary: true,
+                    libraryFilePage: ""
+            });
+            if (newFromFilePath) {
+                objectToEdit.libraryFilePage = newFromFilePath;
+            }
+
+            objectToEdit.name = inputName.value;
+            objectToEdit.tags = inputTags.value.split(",");
+            if (type === "costumes") {
+                objectToEdit.dataFormat = inputDataFormat.value;
+                objectToEdit.bitmapResolution = Number(inputBitmapResolution.value);
+                objectToEdit.rotationCenterX = Number(inputRotationCenterX.value);
+                objectToEdit.rotationCenterY = Number(inputRotationCenterY.value);
+            } else {
+                objectToEdit.rate = Number(inputRate.value);
+            }
+
+            if (!editingObject) {
+                if (type === "costumes") {
+                    this.costumesLibrary.push(objectToEdit);
+                } else {
+                    this.soundsLibrary.push(objectToEdit);
+                }
+            }
+
+            this.showLibrary(type);
         };
         document.body.appendChild(buttonSave);
     }
