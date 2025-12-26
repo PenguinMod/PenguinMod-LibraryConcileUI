@@ -4,12 +4,16 @@ const { glob } = require("glob");
 
 const AppDatabase = require("./AppDatabase");
 const AppUI = require("./AppUI");
+const AppIO = require("./AppIO");
 const Utils = require("./Utils");
 class LibraryApp {
+    static backdropsLibraryPath = "";
     static costumesLibraryPath = "";
     static soundsLibraryPath = "";
     static objectsLibraryPath = "";
 
+    /** @type {[import('../types').Costume]} */
+    static backdropsLibrary = [];
     /** @type {[import('../types').Costume]} */
     static costumesLibrary = [];
     /** @type {[import('../types').Sound]} */
@@ -20,17 +24,25 @@ class LibraryApp {
 
     static initialize() {
         // load paths
+        this.backdropsLibraryPath = AppDatabase.Settings.get("backdropsLibraryPath") || "";
         this.costumesLibraryPath = AppDatabase.Settings.get("costumesLibraryPath") || "";
         this.soundsLibraryPath = AppDatabase.Settings.get("soundsLibraryPath") || "";
         this.objectsLibraryPath = AppDatabase.Settings.get("objectsLibraryPath") || "";
     }
     static saveConfiguration() {
+        AppDatabase.Settings.set("backdropsLibraryPath", this.backdropsLibraryPath);
         AppDatabase.Settings.set("costumesLibraryPath", this.costumesLibraryPath);
         AppDatabase.Settings.set("soundsLibraryPath", this.soundsLibraryPath);
         AppDatabase.Settings.set("objectsLibraryPath", this.objectsLibraryPath);
         console.log('saveConfiguration');
     }
 
+    static loadBackdropsLibrary() {
+        this.backdropsLibrary = [];
+        const libraryText = fs.readFileSync(this.backdropsLibraryPath, "utf8");
+        const libraryJSON = Utils.tryJSONParse(libraryText, []);
+        this.backdropsLibrary = Array.isArray(libraryJSON) ? libraryJSON : [];
+    }
     static loadCostumesLibrary() {
         this.costumesLibrary = [];
         const libraryText = fs.readFileSync(this.costumesLibraryPath, "utf8");
@@ -44,6 +56,7 @@ class LibraryApp {
         this.soundsLibrary = Array.isArray(libraryJSON) ? libraryJSON : [];
     }
     static loadLibraries() {
+        this.loadBackdropsLibrary();
         this.loadCostumesLibrary();
         this.loadSoundsLibrary();
     }
@@ -61,10 +74,17 @@ class LibraryApp {
         this.soundsInFolder = filePaths.filter(filePath => filePath.endsWith(".mp3"));
     }
     static getUnlistedCostumes() {
-        return this.costumesInFolder.filter(filePath => !(this.costumesLibrary.find(costume => costume.libraryFilePage === filePath)));
+        return this.costumesInFolder.filter(filePath => !([
+            ...this.backdropsLibrary,
+            ...this.costumesLibrary,
+        ].find(costume => costume.libraryFilePage === filePath)));
     }
     static getUnlistedSounds() {
         return this.soundsInFolder.filter(filePath => !(this.soundsLibrary.find(sound => sound.libraryFilePage === filePath)));
+    }
+    static getBackdropTags() {
+        return [...new Set(this.backdropsLibrary.map(backdrop => backdrop.tags)
+            .flat(Infinity))];
     }
     static getCostumeTags() {
         return [...new Set(this.costumesLibrary.map(costume => costume.tags)
@@ -89,6 +109,8 @@ class LibraryApp {
         this.clearScreen();
 
         // labels
+        const labelPathBackdrops = document.createElement("p");
+        labelPathBackdrops.innerHTML = "Backdrops Library JSON path";
         const labelPathCostumes = document.createElement("p");
         labelPathCostumes.innerHTML = "Costume Library JSON path";
         const labelPathSounds = document.createElement("p");
@@ -96,6 +118,9 @@ class LibraryApp {
         const labelPathObjects = document.createElement("p");
         labelPathObjects.innerHTML = "PenguinMod-ObjectLibraries/files Folder Path";
         // inputs
+        const inputPathBackdrops = document.createElement("input");
+        inputPathBackdrops.placeholder = "backdrops.json";
+        inputPathBackdrops.value = this.backdropsLibraryPath;
         const inputPathCostumes = document.createElement("input");
         inputPathCostumes.placeholder = "costumes.json";
         inputPathCostumes.value = this.costumesLibraryPath;
@@ -106,6 +131,13 @@ class LibraryApp {
         inputPathObjects.placeholder = "PenguinMod-ObjectLibraries/files";
         inputPathObjects.value = this.objectsLibraryPath;
         // browse button
+        const browsePathBackdrops = document.createElement("button");
+        browsePathBackdrops.innerHTML = "Browse";
+        browsePathBackdrops.onclick = AppUI.makeBrowseFileAction(["json"], "Backdrops Library JSON", (path) => {
+            this.backdropsLibraryPath = path;
+            inputPathBackdrops.value = path;
+            this.saveConfiguration();
+        });
         const browsePathCostumes = document.createElement("button");
         browsePathCostumes.innerHTML = "Browse";
         browsePathCostumes.onclick = AppUI.makeBrowseFileAction(["json"], "Costume Library JSON", (path) => {
@@ -129,6 +161,10 @@ class LibraryApp {
         });
 
         // add those in order
+        // backdrops path
+        document.body.appendChild(labelPathBackdrops);
+        document.body.appendChild(inputPathBackdrops);
+        document.body.appendChild(browsePathBackdrops);
         // costume path
         document.body.appendChild(labelPathCostumes);
         document.body.appendChild(inputPathCostumes);
@@ -153,16 +189,17 @@ class LibraryApp {
         submitPaths.onclick = async () => {
             this.showLoading("Loading libraries");
 
+            this.backdropsLibraryPath = inputPathBackdrops.value;
             this.costumesLibraryPath = inputPathCostumes.value;
             this.soundsLibraryPath = inputPathSounds.value;
             await this.saveConfiguration();
             await this.loadLibraries();
-            console.log('yah bro im done Loading blibraries', this.costumesLibrary, this.soundsLibrary);
+            console.log('yah bro im done Loading blibraries', this.backdropsLibrary, this.costumesLibrary, this.soundsLibrary);
 
             this.showLoading("Processing library");
             await this.loadObjectsLibraryFolder();
             console.log("yea bro i finish", this.costumesInFolder, this.soundsInFolder);
-            console.log("low key", this.getUnlistedCostumes());
+            console.log("low key", this.getUnlistedCostumes(), this.getUnlistedSounds());
 
             this.showLibrarySelector();
         };
@@ -176,6 +213,9 @@ class LibraryApp {
         const labelBack = document.createElement("h1");
         labelBack.innerHTML = "Back";
         // buttons
+        const buttonBackdrops = document.createElement("button");
+        buttonBackdrops.innerHTML = "Backdrops";
+        buttonBackdrops.onclick = () => this.showLibrary("backdrops");
         const buttonCostumes = document.createElement("button");
         buttonCostumes.innerHTML = "Costumes";
         buttonCostumes.onclick = () => this.showLibrary("costumes");
@@ -190,6 +230,7 @@ class LibraryApp {
 
         // add stuff in order
         document.body.appendChild(labelLibraries);
+        document.body.appendChild(buttonBackdrops);
         document.body.appendChild(buttonCostumes);
         document.body.appendChild(buttonSounds);
         document.body.appendChild(labelBack);
@@ -204,12 +245,14 @@ class LibraryApp {
         document.body.appendChild(buttonBack);
 
         const labelLibrary = document.createElement("h1");
-        labelLibrary.innerHTML = type === "costumes" ? "Costumes": "Sounds";
+        labelLibrary.innerHTML = type === "costumes" ? "Costumes" : (type === "backdrops" ? "Backdrops" : "Sounds");
         document.body.appendChild(labelLibrary);
         const buttonSave = document.createElement("button");
         buttonSave.innerHTML = "Save";
         buttonSave.onclick = () => {
-            if (type === "costumes") {
+            if (type === "backdrops") {
+                fs.writeFileSync(this.backdropsLibraryPath, JSON.stringify(this.backdropsLibrary, null, 4), "utf8");
+            } else if (type === "costumes") {
                 fs.writeFileSync(this.costumesLibraryPath, JSON.stringify(this.costumesLibrary, null, 4), "utf8");
             } else {
                 fs.writeFileSync(this.soundsLibraryPath, JSON.stringify(this.soundsLibrary, null, 4), "utf8");
@@ -232,7 +275,7 @@ class LibraryApp {
         detailsListed.appendChild(summaryListed);
 
         // fill out the lists
-        const unlistedObjects = type === "costumes" ? this.getUnlistedCostumes() : this.getUnlistedSounds();
+        const unlistedObjects = (type === "costumes" || type === "backdrops") ? this.getUnlistedCostumes() : this.getUnlistedSounds();
         for (const filePath of unlistedObjects) {
             const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath);
             detailsUnlisted.appendChild(button);
@@ -240,7 +283,7 @@ class LibraryApp {
             button.onclick = () => this.showAssetMenu(type, filePath);
         }
 
-        const listedObjects = (type === "costumes" ? this.costumesLibrary : this.soundsLibrary)
+        const listedObjects = (type === "backdrops" ? this.backdropsLibrary : (type === "costumes" ? this.costumesLibrary : this.soundsLibrary))
             .filter(object => object.fromPenguinModLibrary)
             .toSorted((a, b) => a.name.localeCompare(b.name));
         for (const object of listedObjects) {
@@ -252,6 +295,7 @@ class LibraryApp {
         }
     }
     static showAssetMenu(type, newFromFilePath, editingObject) {
+        const filePath = editingObject ? editingObject.libraryFilePage : newFromFilePath;
         this.clearScreen();
 
         const buttonBack = document.createElement("button");
@@ -260,23 +304,26 @@ class LibraryApp {
         document.body.appendChild(buttonBack);
 
         const labelMenu = document.createElement("h1");
-        labelMenu.innerHTML = newFromFilePath ? ("New " + (type === "costumes" ? "Costume" : "Sound") + " from " + newFromFilePath)
+        labelMenu.innerHTML = newFromFilePath ? ("New " + (type === "backdrops" ? "Backdrop" : (type === "costumes" ? "Costume" : "Sound")) + " from " + newFromFilePath)
             : "Editing " + editingObject.name;
         document.body.appendChild(labelMenu);
-        if (type === "costumes") {
-            const filePath = editingObject ? editingObject.libraryFilePage : newFromFilePath;
+        if (type === "costumes" || type === "backdrops") {
             const image = document.createElement("img");
             image.src = path.join(this.objectsLibraryPath, filePath);
             image.classList.add("costume-image");
             document.body.appendChild(image);
         } else {
-            const filePath = editingObject ? editingObject.libraryFilePage : newFromFilePath;
             const audio = document.createElement("audio");
             audio.src = path.join(this.objectsLibraryPath, filePath);
             audio.controls = true;
             audio.volume = 0.5;
             document.body.appendChild(audio);
         }
+
+        const buttonLocate = document.createElement("button");
+        buttonLocate.innerHTML = "Locate in folder";
+        buttonLocate.onclick = () => AppIO.locateInExplorer(path.join(this.objectsLibraryPath, filePath));
+        document.body.appendChild(buttonLocate);
 
         // values that always be made
         // name
@@ -298,7 +345,9 @@ class LibraryApp {
         // we can just show common tags in this library
         const commonTags = document.createElement("p");
         commonTags.innerHTML = "Common tags: " +
-            (type === "costumes" ? this.getCostumeTags() : this.getSoundTags()).toSorted((a, b) => a.localeCompare(b)).join(" ");
+            ((type === "backdrops" ? this.getBackdropTags() : (type === "costumes" ? this.getCostumeTags() : this.getSoundTags()))
+            .toSorted((a, b) => a.localeCompare(b))
+            .join(" "));
         commonTags.style.width = "calc(100% - 16px)";
         commonTags.style.display = "none";
         inputTags.onfocus = () => {
@@ -318,7 +367,7 @@ class LibraryApp {
         inputDataFormat.value = editingObject ? editingObject.dataFormat : (newFromFilePath.endsWith("svg") ? "svg" : "png");
         labelDataFormat.appendChild(inputDataFormat);
         document.body.appendChild(labelDataFormat);
-        labelDataFormat.style.display = type === "costumes" ? "" : "none";
+        labelDataFormat.style.display = type === "costumes" || type === "backdrops" ? "" : "none";
         // bitmapResolution
         const labelBitmapResolution = document.createElement("label");
         labelBitmapResolution.appendChild(document.createTextNode("Bitmap Res:"));
@@ -329,7 +378,7 @@ class LibraryApp {
         inputBitmapResolution.value = editingObject ? editingObject.bitmapResolution : (newFromFilePath.endsWith("svg") ? 1 : 2);
         labelBitmapResolution.appendChild(inputBitmapResolution);
         document.body.appendChild(labelBitmapResolution);
-        labelBitmapResolution.style.display = type === "costumes" ? "" : "none";
+        labelBitmapResolution.style.display = type === "costumes" || type === "backdrops" ? "" : "none";
         // rotationCenterX
         const labelRotationCenterX = document.createElement("label");
         labelRotationCenterX.appendChild(document.createTextNode("Rotation Center X:"));
@@ -337,10 +386,11 @@ class LibraryApp {
         inputRotationCenterX.type = "number";
         inputRotationCenterX.step = 1;
         inputRotationCenterX.placeholder = "0 for SVG";
-        inputRotationCenterX.value = editingObject ? editingObject.rotationCenterX : 0;
+        inputRotationCenterX.value = editingObject ? editingObject.rotationCenterX
+            : (type === "backdrops" && !newFromFilePath.endsWith("svg") ? 480 : 0);
         labelRotationCenterX.appendChild(inputRotationCenterX);
         document.body.appendChild(labelRotationCenterX);
-        labelRotationCenterX.style.display = type === "costumes" ? "" : "none";
+        labelRotationCenterX.style.display = type === "costumes" || type === "backdrops" ? "" : "none";
         // rotationCenterY
         const labelRotationCenterY = document.createElement("label");
         labelRotationCenterY.appendChild(document.createTextNode("Rotation Center Y:"));
@@ -348,10 +398,11 @@ class LibraryApp {
         inputRotationCenterY.type = "number";
         inputRotationCenterY.step = 1;
         inputRotationCenterY.placeholder = "0 for SVG";
-        inputRotationCenterY.value = editingObject ? editingObject.rotationCenterY : 0;
+        inputRotationCenterY.value = editingObject ? editingObject.rotationCenterY
+            : (type === "backdrops" && !newFromFilePath.endsWith("svg") ? 360 : 0);
         labelRotationCenterY.appendChild(inputRotationCenterY);
         document.body.appendChild(labelRotationCenterY);
-        labelRotationCenterY.style.display = type === "costumes" ? "" : "none";
+        labelRotationCenterY.style.display = type === "costumes" || type === "backdrops" ? "" : "none";
 
         // rate
         const labelRate = document.createElement("label");
@@ -371,7 +422,7 @@ class LibraryApp {
         buttonSave.onclick = () => {
             console.log('gotta save');
 
-            const objectToEdit = editingObject ? editingObject : (type === "costumes" ? {
+            const objectToEdit = editingObject ? editingObject : ((type === "costumes" || type === "backdrops") ? {
                     name: "",
                     tags: [],
                     bitmapResolution: 1,
@@ -395,7 +446,7 @@ class LibraryApp {
 
             objectToEdit.name = inputName.value;
             objectToEdit.tags = inputTags.value.split(",");
-            if (type === "costumes") {
+            if (type === "costumes" || type === "backdrops") {
                 objectToEdit.dataFormat = inputDataFormat.value;
                 objectToEdit.bitmapResolution = Number(inputBitmapResolution.value);
                 objectToEdit.rotationCenterX = Number(inputRotationCenterX.value);
@@ -405,7 +456,9 @@ class LibraryApp {
             }
 
             if (!editingObject) {
-                if (type === "costumes") {
+                if (type === "backdrops") {
+                    this.backdropsLibrary.push(objectToEdit);
+                } else if (type === "costumes") {
                     this.costumesLibrary.push(objectToEdit);
                 } else {
                     this.soundsLibrary.push(objectToEdit);

@@ -38,6 +38,7 @@ class AppUI {
     }
     static makeButtonForObject(type, objectsLibraryPath, filePath, object) {
         switch (type) {
+            case "backdrops":
             case "costumes":
                 return this.makeButtonForCostume(objectsLibraryPath, filePath, object);
             case "sounds":
