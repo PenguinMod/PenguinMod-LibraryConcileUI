@@ -260,18 +260,38 @@ class LibraryApp {
         };
         document.body.appendChild(buttonSave);
 
+        const buttonResort = document.createElement("button");
+        buttonResort.innerHTML = "Resort Library";
+        buttonResort.onclick = () => {
+            this.showLoading("Sorting library");
+            if (type === "backdrops") {
+                this.backdropsLibrary.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (type === "costumes") {
+                this.costumesLibrary.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (type === "sounds") {
+                this.soundsLibrary.sort((a, b) => a.name.localeCompare(b.name));
+            }
+            this.showLibrary(type);
+        }
+        document.body.appendChild(buttonResort);
+
         document.body.appendChild(document.createElement("br"));
         document.body.appendChild(document.createElement("br"));
 
         const detailsUnlisted = document.createElement("details");
+        const detailsNew = document.createElement("details");
         const detailsListed = document.createElement("details");
         const summaryUnlisted = document.createElement("summary");
+        const summaryNew = document.createElement("summary");
         const summaryListed = document.createElement("summary");
         summaryUnlisted.innerHTML = "Unlisted";
+        summaryNew.innerHTML = "Marked as New";
         summaryListed.innerHTML = "Library list";
         document.body.appendChild(detailsUnlisted);
+        document.body.appendChild(detailsNew);
         document.body.appendChild(detailsListed);
         detailsUnlisted.appendChild(summaryUnlisted);
+        detailsNew.appendChild(summaryNew);
         detailsListed.appendChild(summaryListed);
 
         // fill out the lists
@@ -286,6 +306,15 @@ class LibraryApp {
         const listedObjects = (type === "backdrops" ? this.backdropsLibrary : (type === "costumes" ? this.costumesLibrary : this.soundsLibrary))
             .filter(object => object.fromPenguinModLibrary)
             .toSorted((a, b) => a.name.localeCompare(b.name));
+        const newObjects = listedObjects.filter(object => object.tags.includes("new"));
+        for (const object of newObjects) {
+            const filePath = object.libraryFilePage;
+            const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath, object);
+            detailsNew.appendChild(button);
+
+            button.onclick = () => this.showAssetMenu(type, null, object);
+        }
+
         for (const object of listedObjects) {
             const filePath = object.libraryFilePage;
             const button = AppUI.makeButtonForObject(type, this.objectsLibraryPath, filePath, object);
